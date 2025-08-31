@@ -100,7 +100,7 @@ export const eliminarUsuario = async (id: string): Promise<void> => {
   try {
     await http.delete<void>(`${USUARIOS_API_PATH}/${id}`);
   } catch (error) {
-    console.error("Error al eliminar lógicamente el usuario:", error);
+    console.error("Error al eliminar el usuario:", error);
     throw error;
   }
 };

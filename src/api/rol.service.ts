@@ -84,7 +84,7 @@ export const eliminarRol = async (id: string): Promise<void> => {
   try {
     await http.delete<void>(`${ROLES_API_PATH}/${id}`);
   } catch (error) {
-    console.error("Error al eliminar lógicamente el rol:", error);
+    console.error("Error al eliminar el rol:", error);
     throw error;
   }
 };
