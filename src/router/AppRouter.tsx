@@ -15,7 +15,8 @@ const NotFoundPage = lazy(() => import("@/pages/NotFoundPage"));
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  allowedRoles: string[];
+  // Cambiamos el tipo para que acepte un array, incluso si está vacío (por si acaso)
+  allowedRoles: string[]; 
 }
 
 // Componente para proteger las rutas por rol
@@ -36,6 +37,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
     return <Navigate to="/login" replace />;
   }
 
+  // Si no se especifican roles permitidos (ej: la ruta principal), se permite el acceso.
+  // Esto es un fallback, la lógica debe asegurar que el usuario autenticado tiene al menos un rol.
+  if (allowedRoles.length === 0) {
+      return <>{children}</>;
+  }
+
   // Verifica si el usuario tiene al menos uno de los roles permitidos
   const hasRequiredRole = user?.roles?.some(role => allowedRoles.includes(role));
 
@@ -43,21 +50,28 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
     return <>{children}</>;
   }
 
-  // Si no tiene el rol, redirige a la página de inicio
+  // Si no tiene el rol, redirige a la página de inicio (o a un 403)
   return <Navigate to="/" replace />;
 };
 
-// Función recursiva para generar las rutas. 
-// Ahora cada ruta con un componente se envuelve en ProtectedRoute.
+// Función recursiva para generar las rutas.
 const renderRoutes = (routes: AppRoute[]): JSX.Element[] => {
   return routes.flatMap((route) => {
+    // 🌟 CORRECCIÓN CLAVE: Usamos encadenamiento opcional y un fallback a array vacío 🌟
+    const allowedRoles = route.menuProps?.allowedRoles || [];
+
     if (route.children) {
-      // No se necesita redirección aquí, ya que el Outlet se encargará de renderizar la sub-ruta.
+      const element = route.element ? (
+        <ProtectedRoute allowedRoles={allowedRoles}>
+          <route.element />
+        </ProtectedRoute>
+      ) : null;
+      
       return (
         <Route
           key={route.path}
           path={route.path}
-          element={route.element ? <ProtectedRoute allowedRoles={route.menuProps.allowedRoles}><route.element /></ProtectedRoute> : null}
+          element={element}
         >
           {renderRoutes(route.children)}
         </Route>
@@ -70,9 +84,11 @@ const renderRoutes = (routes: AppRoute[]): JSX.Element[] => {
           key={route.path}
           path={route.path}
           // Envuelve el componente con ProtectedRoute y pasa los roles permitidos
-          element={<ProtectedRoute allowedRoles={route.menuProps.allowedRoles}>
-                    <route.element />
-                   </ProtectedRoute>}
+          element={
+            <ProtectedRoute allowedRoles={allowedRoles}>
+              <route.element />
+            </ProtectedRoute>
+          }
         />
       );
     }
@@ -91,6 +107,12 @@ const AppRouter: React.FC = () => {
     );
   }
 
+  // 🌟 CORRECCIÓN CLAVE: Fallback a array vacío si menuProps no existe 🌟
+  // Esto genera una lista con TODOS los roles permitidos en la aplicación.
+  const allAllowedRoles = appRoutes.flatMap(route => 
+      route.menuProps?.allowedRoles || []
+  );
+
   return (
     <Suspense fallback={
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
@@ -101,13 +123,12 @@ const AppRouter: React.FC = () => {
         <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
         
         {/*
-          Ahora, la ruta principal que renderiza AppLayout también está protegida.
-          Esto previene que usuarios no autenticados accedan a cualquier ruta anidada
-          sin pasar por el login.
+          La ruta principal que renderiza AppLayout está protegida. 
+          Usamos 'allAllowedRoles' para permitir el acceso si el usuario tiene *cualquier* rol definido.
         */}
         <Route
           path="/"
-          element={<ProtectedRoute allowedRoles={appRoutes.flatMap(route => route.menuProps.allowedRoles)}><AppLayout /></ProtectedRoute>}
+          element={<ProtectedRoute allowedRoles={allAllowedRoles}><AppLayout /></ProtectedRoute>}
         >
           {renderRoutes(appRoutes)}
         </Route>
