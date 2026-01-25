@@ -6,58 +6,57 @@ on:
       - main
     types:
       - closed
-  workflow_dispatch:
-    inputs:
-      branch:
-        description: 'Rama desde la cual desplegar (manual)'
-        required: true
-        default: 'main'
-        type: choice
-        options:
-          - main
-          - develop
 
 jobs:
   build-and-push:
-    # Condiciones:
-    # - PR mergeado de develop -> main
-    # - O ejecución manual
+    # SOLO cuando:
+    # - el PR fue mergeado
+    # - viene desde develop hacia main
     if: |
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.pull_request.merged == true &&
-       github.event.pull_request.base.ref == 'main' &&
-       github.event.pull_request.head.ref == 'develop')
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.head.ref == 'develop'
 
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: 📥 Checkout código
         uses: actions/checkout@v3
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.branch || 'main' }}
+          fetch-depth: 0   # NECESARIO para versionamiento semántico
 
-      - name: Set up Node.js
+      # 🔢 Generar versión semántica (MISMA lógica que backend)
+      - name: 🔢 Generar versión
+        id: version
+        uses: PaulHatch/semantic-version@v4
+        with:
+          major_pattern: "major:"
+          minor_pattern: "feat:"
+          format: "${major}.${minor}.${patch}"
+
+      - name: 🟢 Configurar Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18.x'
 
-      - name: Install dependencies
+      - name: 📦 Instalar dependencias
         run: npm ci
 
-      - name: Build frontend
+      - name: 🏗️ Build frontend
         run: npm run build
 
-      - name: Docker Login
+      - name: 🔑 Docker Login
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push Docker image
+      - name: 🐳 Build & Push Docker Image
         uses: docker/build-push-action@v4
         with:
           context: .
           file: Dockerfile
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/inmobiliaria-frontend:${{ github.event_name == 'workflow_dispatch' && github.event.inputs.branch || 'main' }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/inmobiliaria-frontend:${{ steps.version.outputs.version }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/inmobiliaria-frontend:latest
