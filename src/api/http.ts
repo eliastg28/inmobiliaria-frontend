@@ -1,7 +1,7 @@
 // src/api/http.ts
 import axios from "axios";
 
-const API_URL = "http://backend:8080"; // Cambia al URL de tu backend
+const API_URL = "http://localhost:8080"; // Cambia al URL de tu backend
 
 const http = axios.create({
   baseURL: API_URL,
