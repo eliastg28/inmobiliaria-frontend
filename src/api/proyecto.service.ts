@@ -36,12 +36,17 @@ export interface ProyectoDTO {
 const PROYECTOS_API_PATH = '/api/proyectos';
 
 /**
- * Obtiene la lista de todos los proyectos activos.
+ * Obtiene la lista de todos los proyectos activos, con búsqueda opcional.
+ * @param search (opcional) texto de búsqueda
  * @returns Una promesa que resuelve con un array de objetos ProyectoResponse.
  */
-export const getProyectosActivos = async (): Promise<ProyectoResponse[]> => {
+export const getProyectosActivos = async (search?: string): Promise<ProyectoResponse[]> => {
     try {
-        const response = await http.get<ProyectoResponse[]>(PROYECTOS_API_PATH);
+        let url = PROYECTOS_API_PATH;
+        if (search && search.trim() !== "") {
+            url += `?search=${encodeURIComponent(search.trim())}`;
+        }
+        const response = await http.get<ProyectoResponse[]>(url);
         return response.data;
     } catch (error) {
         console.error("Error al obtener la lista de proyectos:", error);

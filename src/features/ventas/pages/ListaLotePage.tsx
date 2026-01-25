@@ -1,6 +1,6 @@
 // src/pages/Lotes/ListaLotePage.tsx
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 // 🌟 Importaciones CLAVE para manejar la navegación y parámetros
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -85,6 +85,8 @@ const ListaLotePage: React.FC = () => {
     "Cargando...";
 
   const [lotes, setLotes] = useState<Lote[]>([]);
+  const [search, setSearch] = useState<string>("");
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [estadosLoteOptions, setEstadosLoteOptions] = useState<EstadoLote[]>(
     []
   );
@@ -193,10 +195,10 @@ const ListaLotePage: React.FC = () => {
 
   // --- LÓGICA DE CARGA DE DATOS Y SELECTORES ---
 
-  const fetchData = async (id: string) => {
+  const fetchData = async (id: string, searchValue?: string) => {
     setLoading(true);
     try {
-      const allData = await getLotesActivos();
+      const allData = await getLotesActivos(searchValue);
       const filteredLotes = (allData as LoteConGeografia[]).filter(
         (lote) => lote.proyectoId === id
       );
@@ -209,6 +211,20 @@ const ListaLotePage: React.FC = () => {
       setLoading(false);
     }
   };
+  // Efecto para manejar el debounce de búsqueda
+  useEffect(() => {
+    if (!proyectoId) return;
+    if (searchTimeout.current) {
+      clearTimeout(searchTimeout.current);
+    }
+    searchTimeout.current = setTimeout(() => {
+      fetchData(proyectoId, search);
+    }, 1000); // 1 segundo de espera tras dejar de escribir
+    return () => {
+      if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, proyectoId]);
 
   const fetchSelectOptions = async () => {
     try {
@@ -517,76 +533,91 @@ const ListaLotePage: React.FC = () => {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <Card className="shadow-md rounded-lg max-w-full lg:max-w-6xl mx-auto">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-          <div className="flex items-center space-x-4">
-            {/* 🌟 BOTÓN DE REGRESO */}
-            <Button
-              icon={<ArrowLeftOutlined />}
-              onClick={handleGoBack}
-              type="text"
-              className="text-gray-600 hover:text-blue-500"
-            >
-              Volver
-            </Button>
-            {/* 🌟 TÍTULO DINÁMICO */}
-            <Title level={2} className="text-xl sm:text-2xl mb-4 sm:mb-0">
-              Lotes del Proyecto: {proyectoNombre}
-            </Title>
+        <div className="mb-6">
+          <Title level={2} className="text-xl sm:text-2xl mb-4 sm:mb-0">
+            Lotes del Proyecto: {proyectoNombre}
+          </Title>
+          <div className="flex flex-col gap-2 mt-2">
+            <div>
+              <Button
+                icon={<ArrowLeftOutlined />}
+                onClick={handleGoBack}
+                type="text"
+                className="text-gray-600 hover:text-blue-500 mr-2"
+                style={{ width: 'fit-content' }}
+              >
+                Volver
+              </Button>
+            </div>
+            <br />
+            <div>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                style={{ width: 'fit-content' }}
+                onClick={async () => {
+                  setEditingLote(null);
+                  handleCloseModal(); // Limpia campos y estados
+
+                  // 🚀 MEJORA: Precargar Geografía y Proyecto al crear
+                  const currentDptoId = currentProyecto?.departamentoId;
+                  const currentProvId = currentProyecto?.provinciaId;
+                  const currentDistrId = currentProyecto?.distritoId;
+
+                  if (
+                    currentProyecto &&
+                    currentDptoId &&
+                    currentProvId &&
+                    currentDistrId
+                  ) {
+                    // Cargar las opciones de provincia y distrito del proyecto actual
+                    await fetchProvincias(currentDptoId, form);
+                    await fetchDistritos(currentProvId, form);
+
+                    form.setFieldsValue({
+                      estadoLoteId: disponibleId,
+                      proyectoId: proyectoId,
+                      departamentoId: currentDptoId,
+                      provinciaId: currentProvId,
+                      distritoId: currentDistrId,
+                    });
+
+                    // El filtro de proyectosOptions ya se activa con distritoIdValue
+                  } else if (proyectoId) {
+                    // Si no hay info geográfica, solo inicializamos el proyectoId y estado
+                    form.setFieldsValue({
+                      estadoLoteId: disponibleId, // Se asigna internamente, pero el campo no se muestra
+                      proyectoId: proyectoId,
+                    });
+                  }
+
+                  // 🚀 MEJORA: Asegurar que la lista de proyectosOptions solo contenga el proyecto actual (si estamos creando)
+                  // Esto evita que se pueda cambiar el proyecto al crear un lote desde la vista de un proyecto específico
+                  if (proyectoId) {
+                    setProyectosOptions(
+                      allProyectos.filter((p) => p.proyectoId === proyectoId)
+                    );
+                  } else {
+                    setProyectosOptions([]);
+                  }
+
+                  setIsModalVisible(true);
+                }}
+              >
+                Crear Nuevo Lote
+              </Button>
+            </div>
+            <div className="flex-1 sm:flex-none sm:ml-auto mt-2 sm:mt-0" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Input
+                placeholder="Buscar lote..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                allowClear
+                style={{ maxWidth: 250, borderRadius: 8, borderColor: '#1890ff', width: '100%' }}
+                className="shadow-sm"
+              />
+            </div>
           </div>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={async () => {
-              setEditingLote(null);
-              handleCloseModal(); // Limpia campos y estados
-
-              // 🚀 MEJORA: Precargar Geografía y Proyecto al crear
-              const currentDptoId = currentProyecto?.departamentoId;
-              const currentProvId = currentProyecto?.provinciaId;
-              const currentDistrId = currentProyecto?.distritoId;
-
-              if (
-                currentProyecto &&
-                currentDptoId &&
-                currentProvId &&
-                currentDistrId
-              ) {
-                // Cargar las opciones de provincia y distrito del proyecto actual
-                await fetchProvincias(currentDptoId, form);
-                await fetchDistritos(currentProvId, form);
-
-                form.setFieldsValue({
-                  estadoLoteId: disponibleId,
-                  proyectoId: proyectoId,
-                  departamentoId: currentDptoId,
-                  provinciaId: currentProvId,
-                  distritoId: currentDistrId,
-                });
-
-                // El filtro de proyectosOptions ya se activa con distritoIdValue
-              } else if (proyectoId) {
-                // Si no hay info geográfica, solo inicializamos el proyectoId y estado
-                form.setFieldsValue({
-                  estadoLoteId: disponibleId, // Se asigna internamente, pero el campo no se muestra
-                  proyectoId: proyectoId,
-                });
-              }
-
-              // 🚀 MEJORA: Asegurar que la lista de proyectosOptions solo contenga el proyecto actual (si estamos creando)
-              // Esto evita que se pueda cambiar el proyecto al crear un lote desde la vista de un proyecto específico
-              if (proyectoId) {
-                setProyectosOptions(
-                  allProyectos.filter((p) => p.proyectoId === proyectoId)
-                );
-              } else {
-                setProyectosOptions([]);
-              }
-
-              setIsModalVisible(true);
-            }}
-          >
-            Crear Nuevo Lote
-          </Button>
         </div>
 
         <Table

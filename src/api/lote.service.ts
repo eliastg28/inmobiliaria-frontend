@@ -129,11 +129,16 @@ export const getLotesDisponibles = async (proyectoId?: string): Promise<Lote[]> 
 };
 
 /**
- * Obtiene la lista de todos los lotes activos.
+ * Obtiene la lista de todos los lotes activos, con búsqueda opcional.
+ * @param search (opcional) texto de búsqueda
  */
-export const getLotesActivos = async (): Promise<Lote[]> => {
+export const getLotesActivos = async (search?: string): Promise<Lote[]> => {
     try {
-        const response = await http.get<Lote[]>(`${LOTES_API_PATH}/activos`);
+        let url = `${LOTES_API_PATH}/activos`;
+        if (search && search.trim() !== "") {
+            url += `?search=${encodeURIComponent(search.trim())}`;
+        }
+        const response = await http.get<Lote[]>(url);
         return response.data;
     } catch (error) {
         console.error("Error al obtener los lotes activos:", error);

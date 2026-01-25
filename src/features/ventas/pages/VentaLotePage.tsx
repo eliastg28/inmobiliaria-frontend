@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react"; // Añadido useCallback
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react"; // Añadido useCallback
 import {
   Table,
   Button,
@@ -71,6 +71,8 @@ const VentaLotePage: React.FC = () => {
   }, [authenticatedUserRoles]);
 
   const [ventas, setVentas] = useState<Venta[]>([]);
+  const [search, setSearch] = useState<string>("");
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [clientesOptions, setClientesOptions] = useState<Cliente[]>([]);
   const [proyectosOptions, setProyectosOptions] = useState<Proyecto[]>([]);
   const [lotesOptions, setLotesOptions] = useState<Lote[]>([]);
@@ -192,10 +194,10 @@ const VentaLotePage: React.FC = () => {
     }
   }, []);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (searchValue?: string) => {
     setLoading(true);
     try {
-      const data = await getVentas();
+      const data = await getVentas(searchValue);
       setVentas(data);
     } catch (error) {
       message.error("Error al cargar las ventas. Por favor, intente de nuevo.");
@@ -211,7 +213,22 @@ const VentaLotePage: React.FC = () => {
     }
     fetchData();
     fetchSelectOptions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchData, fetchSelectOptions]);
+
+  // Efecto para manejar el debounce de búsqueda
+  useEffect(() => {
+    if (searchTimeout.current) {
+      clearTimeout(searchTimeout.current);
+    }
+    searchTimeout.current = setTimeout(() => {
+      fetchData(search);
+    }, 1000); // 1 segundo de espera tras dejar de escribir
+    return () => {
+      if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
   // --- Fin de Estados y Hooks de Roles ---
 
   // useEffect para la carga de lotes (ignora modo edición)
@@ -525,6 +542,13 @@ const VentaLotePage: React.FC = () => {
         a.clienteNombreCompleto.localeCompare(b.clienteNombreCompleto),
     },
     {
+      title: "Proyecto",
+      dataIndex: "proyectoNombre",
+      key: "proyectoNombre",
+      sorter: (a: Venta, b: Venta) =>
+        a.proyectoNombre.localeCompare(b.proyectoNombre),
+    },
+    {
       title: "Lote",
       dataIndex: "loteNombre",
       key: "loteNombre",
@@ -665,23 +689,38 @@ const VentaLotePage: React.FC = () => {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <Card className="shadow-md rounded-lg max-w-full lg:max-w-7xl mx-auto">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+        <div className="mb-6">
           <Title level={2} className="text-xl sm:text-2xl mb-4 sm:mb-0">
             Venta de Lotes
           </Title>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setEditingVenta(null);
-              form.resetFields();
-              setLotesOptions([]);
-              setIsModalVisible(true);
-            }}
-            className="bg-green-600 hover:bg-green-700 border-green-600"
-          >
-            Registrar Nueva Venta
-          </Button>
+          <div className="flex flex-wrap flex-col sm:flex-row sm:justify-between sm:items-center w-full gap-2 mt-2">
+            <div className="flex-1 sm:flex-none">
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => {
+                  setEditingVenta(null);
+                  form.resetFields();
+                  setLotesOptions([]);
+                  setIsModalVisible(true);
+                }}
+                className="bg-green-600 hover:bg-green-700 border-green-600"
+              >
+                Registrar Nueva Venta
+              </Button>
+            </div>
+            <br />
+            <div className="flex-1 sm:flex-none sm:ml-auto" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Input
+                placeholder="Buscar venta..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                allowClear
+                style={{ maxWidth: 250, borderRadius: 8, borderColor: '#1890ff', width: '100%' }}
+                className="shadow-sm"
+              />
+            </div>
+          </div>
         </div>
 
         <Table

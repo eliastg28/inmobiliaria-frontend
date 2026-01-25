@@ -20,12 +20,17 @@ export interface EstadoVentaDTO {
 const ESTADO_VENTA_API_PATH = '/api/estados-venta';
 
 /**
- * Obtiene la lista de todos los estados de venta activos.
+ * Obtiene la lista de todos los estados de venta activos, con búsqueda opcional.
+ * @param search (opcional) texto de búsqueda
  * @returns Una promesa que resuelve con un array de objetos EstadoVenta.
  */
-export const getEstadosVenta = async (): Promise<EstadoVenta[]> => {
+export const getEstadosVenta = async (search?: string): Promise<EstadoVenta[]> => {
   try {
-    const response = await http.get<EstadoVenta[]>(ESTADO_VENTA_API_PATH);
+    let url = ESTADO_VENTA_API_PATH;
+    if (search && search.trim() !== "") {
+      url += `?search=${encodeURIComponent(search.trim())}`;
+    }
+    const response = await http.get<EstadoVenta[]>(url);
     return response.data;
   } catch (error) {
     console.error("Error al obtener los estados de venta:", error);

@@ -1,6 +1,6 @@
 // src/pages/Proyectos/ProyectosPage.tsx
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 // 🌟 Importación NECESARIA para la navegación
 import { useNavigate } from "react-router-dom";
 import {
@@ -66,6 +66,8 @@ const ProyectosPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [proyectos, setProyectos] = useState<ProyectoResponse[]>([]);
+  const [search, setSearch] = useState<string>("");
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
   const [editingProyecto, setEditingProyecto] =
@@ -86,12 +88,13 @@ const ProyectosPage: React.FC = () => {
   useEffect(() => {
     fetchData();
     fetchInitialGeoOptions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = async (searchValue?: string) => {
     setLoading(true);
     try {
-      const data = await getProyectosActivos();
+      const data = await getProyectosActivos(searchValue);
       setProyectos(data);
     } catch (error) {
       message.error(
@@ -101,6 +104,20 @@ const ProyectosPage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // Efecto para manejar el debounce de búsqueda
+  useEffect(() => {
+    if (searchTimeout.current) {
+      clearTimeout(searchTimeout.current);
+    }
+    searchTimeout.current = setTimeout(() => {
+      fetchData(search);
+    }, 1000); // 1 segundo de espera tras dejar de escribir
+    return () => {
+      if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
 
   const fetchInitialGeoOptions = async () => {
     try {
@@ -383,21 +400,36 @@ const ProyectosPage: React.FC = () => {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <Card className="shadow-md rounded-lg max-w-full xl:max-w-7xl mx-auto">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+        <div className="mb-6">
           <Title level={2} className="text-xl sm:text-2xl mb-4 sm:mb-0">
             Gestión de Proyectos Inmobiliarios
           </Title>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setEditingProyecto(null);
-              handleCloseModal(); // Limpia campos y estados
-              setIsModalVisible(true);
-            }}
-          >
-            Crear Nuevo Proyecto
-          </Button>
+          <div className="flex flex-wrap flex-col sm:flex-row sm:justify-between sm:items-center w-full gap-2 mt-2">
+            <div className="flex-1 sm:flex-none">
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => {
+                  setEditingProyecto(null);
+                  handleCloseModal();
+                  setIsModalVisible(true);
+                }}
+              >
+                Crear Nuevo Proyecto
+              </Button>
+            </div>
+            <br />
+            <div className="flex-1 sm:flex-none sm:ml-auto" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Input
+                placeholder="Buscar proyecto..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                allowClear
+                style={{ maxWidth: 250, borderRadius: 8, borderColor: '#1890ff', width: '100%' }}
+                className="shadow-sm"
+              />
+            </div>
+          </div>
         </div>
 
         <Table

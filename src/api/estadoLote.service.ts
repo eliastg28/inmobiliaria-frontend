@@ -22,12 +22,17 @@ export interface EstadoLoteDTO {
 const ESTADO_LOTE_API_PATH = '/api/estados-lote';
 
 /**
- * Obtiene la lista de todos los estados de lote activos.
+ * Obtiene la lista de todos los estados de lote activos, con búsqueda opcional.
+ * @param search (opcional) texto de búsqueda
  * @returns Una promesa que resuelve con un array de objetos EstadoLote.
  */
-export const getEstadosLote = async (): Promise<EstadoLote[]> => {
+export const getEstadosLote = async (search?: string): Promise<EstadoLote[]> => {
   try {
-    const response = await http.get<EstadoLote[]>(ESTADO_LOTE_API_PATH);
+    let url = ESTADO_LOTE_API_PATH;
+    if (search && search.trim() !== "") {
+      url += `?search=${encodeURIComponent(search.trim())}`;
+    }
+    const response = await http.get<EstadoLote[]>(url);
     return response.data;
   } catch (error) {
     console.error("Error al obtener los estados de lote:", error);

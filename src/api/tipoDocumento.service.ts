@@ -20,12 +20,17 @@ export interface TipoDocumentoDTO {
 const TIPO_DOCUMENTO_API_PATH = '/api/tipos-documento';
 
 /**
- * Obtiene la lista de todos los tipos de documento activos.
+ * Obtiene la lista de todos los tipos de documento activos, con búsqueda opcional.
+ * @param search (opcional) texto de búsqueda
  * @returns Una promesa que resuelve con un array de objetos TipoDocumento.
  */
-export const getTiposDocumento = async (): Promise<TipoDocumento[]> => {
+export const getTiposDocumento = async (search?: string): Promise<TipoDocumento[]> => {
   try {
-    const response = await http.get<TipoDocumento[]>(TIPO_DOCUMENTO_API_PATH);
+    let url = TIPO_DOCUMENTO_API_PATH;
+    if (search && search.trim() !== "") {
+      url += `?search=${encodeURIComponent(search.trim())}`;
+    }
+    const response = await http.get<TipoDocumento[]>(url);
     return response.data;
   } catch (error) {
     console.error("Error al obtener los tipos de documento:", error);

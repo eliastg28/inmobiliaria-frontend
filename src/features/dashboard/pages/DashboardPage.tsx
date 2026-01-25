@@ -236,7 +236,14 @@ const DashboardPage: React.FC = () => {
           <Row style={{ marginTop: '24px' }}>
             <Col span={24}>
               <Card title="Ventas recientes" style={{ borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                <Table dataSource={ventasRecientes} columns={columns} pagination={false} />
+                <div style={{ overflowX: 'auto' }} className="w-full">
+                  <Table
+                    dataSource={ventasRecientes}
+                    columns={columns}
+                    pagination={false}
+                    scroll={{ x: 'max-content' }}
+                  />
+                </div>
               </Card>
             </Col>
           </Row>

@@ -62,9 +62,14 @@ export const getTiposDocumento = async (): Promise<TipoDocumento[]> => {
 /**
  * Obtiene la lista de todos los clientes activos.
  */
-export const getClientes = async (): Promise<Cliente[]> => {
+export const getClientes = async (search?: string): Promise<Cliente[]> => {
   try {
-    const response = await http.get<Cliente[]>(CLIENTES_API_PATH);
+    let url = CLIENTES_API_PATH;
+    if (search && search.trim() !== "") {
+      // Codifica el parámetro search para evitar problemas con caracteres especiales
+      url += `?search=${encodeURIComponent(search.trim())}`;
+    }
+    const response = await http.get<Cliente[]>(url);
     return response.data;
   } catch (error) {
     console.error("Error al obtener los clientes:", error);

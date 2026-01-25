@@ -87,12 +87,17 @@ const ABONOS_API_PATH = '/api/abonos';
 // =================================================================
 
 /**
- * Obtiene la lista de todas las ventas activas.
+ * Obtiene la lista de todas las ventas activas, con búsqueda opcional.
+ * @param search (opcional) texto de búsqueda
  * @returns Una promesa que resuelve con un array de objetos Venta.
  */
-export const getVentas = async (): Promise<Venta[]> => {
+export const getVentas = async (search?: string): Promise<Venta[]> => {
     try {
-        const response = await http.get<Venta[]>(VENTAS_API_PATH);
+        let url = VENTAS_API_PATH;
+        if (search && search.trim() !== "") {
+            url += `?search=${encodeURIComponent(search.trim())}`;
+        }
+        const response = await http.get<Venta[]>(url);
         return response.data;
     } catch (error) {
         console.error("Error al obtener las ventas:", error);

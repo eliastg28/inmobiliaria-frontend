@@ -1,6 +1,6 @@
 // src/features/usuarios/pages/RolesPage.tsx
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Table,
   Button,
@@ -38,6 +38,8 @@ interface RolFormValues {
 
 const RolesPage: React.FC = () => {
   const [roles, setRoles] = useState<UsuarioRol[]>([]);
+  const [search, setSearch] = useState<string>("");
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
   const [editingRol, setEditingRol] = useState<UsuarioRol | null>(null);
@@ -54,12 +56,13 @@ const RolesPage: React.FC = () => {
       setAuthenticatedUserRoles(authData.roles);
     }
     fetchRoles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchRoles = async () => {
+  const fetchRoles = async (searchValue?: string) => {
     setLoading(true);
     try {
-      const data = await getRoles();
+      const data = await getRoles(searchValue);
       setRoles(data);
     } catch (error) {
       message.error("Error al cargar los roles. Por favor, intente de nuevo.");
@@ -67,6 +70,20 @@ const RolesPage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // Efecto para manejar el debounce de búsqueda
+  useEffect(() => {
+    if (searchTimeout.current) {
+      clearTimeout(searchTimeout.current);
+    }
+    searchTimeout.current = setTimeout(() => {
+      fetchRoles(search);
+    }, 1000); // 1 segundo de espera tras dejar de escribir
+    return () => {
+      if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
 
   const sortedRoles = useMemo(() => {
     // ✨ Filtra la lista de roles si el usuario no es PROPIETARIO
@@ -183,21 +200,36 @@ const RolesPage: React.FC = () => {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <Card className="shadow-md rounded-lg max-w-full lg:max-w-4xl mx-auto">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+        <div className="mb-6">
           <Title level={2} className="text-xl sm:text-2xl mb-4 sm:mb-0">
             Gestión de Roles
           </Title>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setEditingRol(null);
-              form.resetFields();
-              setIsModalVisible(true);
-            }}
-          >
-            Crear Nuevo Rol
-          </Button>
+          <div className="flex flex-wrap flex-col sm:flex-row sm:justify-between sm:items-center w-full gap-2 mt-2">
+            <div className="flex-1 sm:flex-none">
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => {
+                  setEditingRol(null);
+                  form.resetFields();
+                  setIsModalVisible(true);
+                }}
+              >
+                Crear Nuevo Rol
+              </Button>
+            </div>
+            <br />
+            <div className="flex-1 sm:flex-none sm:ml-auto" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Input
+                placeholder="Buscar rol..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                allowClear
+                style={{ maxWidth: 250, borderRadius: 8, borderColor: '#1890ff', width: '100%' }}
+                className="shadow-sm"
+              />
+            </div>
+          </div>
         </div>
 
         <Table
