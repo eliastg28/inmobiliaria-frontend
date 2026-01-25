@@ -1,6 +1,6 @@
 // src/features/usuarios/pages/UsuariosPage.tsx
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Table,
   Button,
@@ -45,6 +45,8 @@ interface UserFormValues {
 
 const UsuariosPage: React.FC = () => {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [search, setSearch] = useState<string>("");
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [roles, setRoles] = useState<UsuarioRol[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
@@ -64,13 +66,14 @@ const UsuariosPage: React.FC = () => {
       setAuthenticatedUserRoles(authData.roles);
     }
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = async (searchValue?: string) => {
     setLoading(true);
     try {
       const [userData, rolesData] = await Promise.all([
-        getUsuarios(),
+        getUsuarios(searchValue),
         getRoles(),
       ]);
       setUsuarios(userData);
@@ -81,6 +84,20 @@ const UsuariosPage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // Efecto para manejar el debounce de búsqueda
+  useEffect(() => {
+    if (searchTimeout.current) {
+      clearTimeout(searchTimeout.current);
+    }
+    searchTimeout.current = setTimeout(() => {
+      fetchData(search);
+    }, 1000); // 1 segundo de espera tras dejar de escribir
+    return () => {
+      if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
 
   const sortedUsuarios = useMemo(() => {
     return [...usuarios].sort((a, b) => a.username.localeCompare(b.username));
@@ -285,21 +302,36 @@ const UsuariosPage: React.FC = () => {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <Card className="shadow-md rounded-lg max-w-full lg:max-w-4xl mx-auto">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+        <div className="mb-6">
           <Title level={2} className="text-xl sm:text-2xl mb-4 sm:mb-0">
             Gestión de Usuarios
           </Title>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setEditingUser(null);
-              form.resetFields();
-              setIsModalVisible(true);
-            }}
-          >
-            Crear Nuevo Usuario
-          </Button>
+          <div className="flex flex-wrap flex-col sm:flex-row sm:justify-between sm:items-center w-full gap-2 mt-2">
+            <div className="flex-1 sm:flex-none">
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => {
+                  setEditingUser(null);
+                  form.resetFields();
+                  setIsModalVisible(true);
+                }}
+              >
+                Crear Nuevo Usuario
+              </Button>
+            </div>
+            <br />
+            <div className="flex-1 sm:flex-none sm:ml-auto" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Input
+                placeholder="Buscar usuario..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                allowClear
+                style={{ maxWidth: 250, borderRadius: 8, borderColor: '#1890ff', width: '100%' }}
+                className="shadow-sm"
+              />
+            </div>
+          </div>
         </div>
 
         <Table

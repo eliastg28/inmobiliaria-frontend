@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Menu } from "antd";
 import { DoubleRightOutlined, DoubleLeftOutlined } from "@ant-design/icons";
 import { useAuth } from "@/context/AuthContext";
-import { LogOut } from "lucide-react";
+// import { LogOut } from "lucide-react"; // ⬅️ ELIMINADO
 import { appRoutes, AppRoute } from "@/router/routes";
 
 interface AppSidebarProps {
@@ -15,36 +15,56 @@ interface AppSidebarProps {
 const AppSidebar: React.FC<AppSidebarProps> = ({ collapsed, toggleSidebar }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { user, logout } = useAuth(); // Mantengo 'logout' por si lo usas en otro lado
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
+  // Obtenemos los roles del usuario de manera segura
+  const userRoles = user?.roles || []; 
+
+  // Función de ayuda para verificar si el usuario tiene acceso
+  const hasAccess = (allowedRoles: string[]): boolean => {
+    return allowedRoles.some(role => userRoles.includes(role));
   };
+
 
   // Función recursiva para generar los items del menú, incluyendo submenús
   const renderMenuItems = (routes: AppRoute[]): any[] => {
     return routes
-      .filter(route =>
-        route.menuProps.allowedRoles.some(role => user?.roles?.includes(role))
+      // 🌟🌟🌟 FILTRO CLAVE: Asegurarse que menuProps exista y el usuario tenga acceso 🌟🌟🌟
+      .filter(route => 
+          route.menuProps && hasAccess(route.menuProps.allowedRoles)
       )
       .map(route => {
-        // Si la ruta tiene hijos, crea un SubMenu
+        
+        // El filtro anterior garantiza que menuProps exista
+        const { key, icon, label } = route.menuProps!; 
+
+        // Si la ruta tiene hijos, gestiona el SubMenu
         if (route.children && route.children.length > 0) {
+          
+          // Renderiza recursivamente a los hijos
+          const childrenItems = renderMenuItems(route.children); 
+          
+          // Oculta el menú padre si ninguno de sus hijos es visible
+          if (childrenItems.length === 0) {
+            return null; 
+          }
+
           return {
-            key: route.menuProps.key,
-            icon: route.menuProps.icon,
-            label: route.menuProps.label,
-            children: renderMenuItems(route.children), // Llama recursivamente
+            key: key,
+            icon: icon,
+            label: label,
+            children: childrenItems, 
           };
         }
-        // Si no tiene hijos, crea un Item de Menú
+        
+        // Si no tiene hijos, crea un Item de Menú (Hoja)
         return {
-          key: route.menuProps.key,
-          icon: route.menuProps.icon,
-          label: route.menuProps.label,
+          key: key,
+          icon: icon,
+          label: label,
         };
-      });
+      })
+      .filter(item => item !== null); // Eliminar entradas nulas (padres sin hijos visibles)
   };
 
   const menuItems = renderMenuItems(appRoutes);
@@ -97,11 +117,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ collapsed, toggleSidebar }) => 
         selectedKeys={[location.pathname]}
         inlineCollapsed={collapsed}
         onClick={({ key }) => {
-          if (key === "logout") {
-            handleLogout();
-          } else {
-            navigate(key);
-          }
+          navigate(key); 
         }}
         items={menuItems}
       />

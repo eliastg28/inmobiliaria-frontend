@@ -16,12 +16,17 @@ export interface UsuarioRol {
 const ROLES_API_PATH = '/api/roles';
 
 /**
- * Obtiene la lista de todos los roles activos.
+ * Obtiene la lista de todos los roles activos, con búsqueda opcional.
+ * @param search (opcional) texto de búsqueda
  * @returns Una promesa que resuelve con un array de UsuarioRol.
  */
-export const getRoles = async (): Promise<UsuarioRol[]> => {
+export const getRoles = async (search?: string): Promise<UsuarioRol[]> => {
   try {
-    const response = await http.get<UsuarioRol[]>(ROLES_API_PATH);
+    let url = ROLES_API_PATH;
+    if (search && search.trim() !== "") {
+      url += `?search=${encodeURIComponent(search.trim())}`;
+    }
+    const response = await http.get<UsuarioRol[]>(url);
     return response.data;
   } catch (error) {
     console.error("Error al obtener roles:", error);
@@ -84,7 +89,7 @@ export const eliminarRol = async (id: string): Promise<void> => {
   try {
     await http.delete<void>(`${ROLES_API_PATH}/${id}`);
   } catch (error) {
-    console.error("Error al eliminar lógicamente el rol:", error);
+    console.error("Error al eliminar el rol:", error);
     throw error;
   }
 };
