@@ -96,7 +96,7 @@ export const appRoutes: AppRoute[] = [
         element: UsersPage,
         menuProps: {
           key: "/users/list",
-          label: "Lista de Usuarios",
+          label: "Usuarios",
           icon: <UnorderedListOutlined />,
           allowedRoles: ["PROPIETARIO", "ADMIN"],
         },
@@ -139,7 +139,7 @@ export const appRoutes: AppRoute[] = [
         element: EstadosLoteVentaPage,
         menuProps: {
           key: "/catalogs/estados-venta-lote",
-          label: "Estados de Venta Lote",
+          label: "Estados Venta",
           icon: null,
           allowedRoles: ["PROPIETARIO", "ADMIN"],
         },
@@ -159,12 +159,12 @@ export const appRoutes: AppRoute[] = [
         element: TiposDocumentoPage,
         menuProps: {
           key: "/catalogs/tipos-documento",
-          label: "Tipos de Documento",
+          label: "Tipos Doc.",
           icon: null,
           allowedRoles: ["PROPIETARIO", "ADMIN"],
         },
       },
-      {
+      /* {
         path: "tipos-lote",
         element: TiposLotePage,
         menuProps: {
@@ -173,7 +173,7 @@ export const appRoutes: AppRoute[] = [
           icon: null,
           allowedRoles: ["PROPIETARIO", "ADMIN"],
         },
-      },
+      }, */
     ],
   },
   {
@@ -212,7 +212,7 @@ export const appRoutes: AppRoute[] = [
         menuProps: {
           // 🌟 CAMBIO EN EL KEY: /lots/projects
           key: "/lots/projects", // ANTES: "/lots/list"
-          label: "Lista de Proyectos",
+          label: "Proyectos",
           icon: <UnorderedListOutlined />,
           allowedRoles: ["PROPIETARIO", "ADMIN", "AGENTE VENTAS"],
         },
@@ -230,7 +230,7 @@ export const appRoutes: AppRoute[] = [
         element: VentaLotePage,
         menuProps: {
           key: "/lots/sale",
-          label: "Venta de lotes",
+          label: "Venta Lotes",
           icon: <DollarCircleOutlined />,
           allowedRoles: ["PROPIETARIO", "ADMIN", "AGENTE VENTAS"],
         },
