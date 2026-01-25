@@ -29,7 +29,7 @@ const DashboardPage: React.FC = () => {
   // 📌 FUNCIÓN PARA DESCARGAR EL PDF
   const handleDownloadPDF = async () => {
     try {
-      const response = await fetch("http://backend:8080/api/reportes/mensual/pdf", {
+      const response = await fetch("http://localhost:8080/api/reportes/mensual/pdf", {
         method: "GET",
       });
 
