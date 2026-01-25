@@ -1,19 +1,40 @@
 name: Build and Push Frontend Docker Image
 
 on:
-  push:
+  pull_request:
     branches:
       - main
-      - develop
+    types:
+      - closed
   workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Rama desde la cual desplegar (manual)'
+        required: true
+        default: 'main'
+        type: choice
+        options:
+          - main
+          - develop
 
 jobs:
   build-and-push:
+    # Condiciones:
+    # - PR mergeado de develop -> main
+    # - O ejecución manual
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.merged == true &&
+       github.event.pull_request.base.ref == 'main' &&
+       github.event.pull_request.head.ref == 'develop')
+
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.branch || 'main' }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
@@ -38,4 +59,5 @@ jobs:
           context: .
           file: Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/inmobiliaria-frontend:latest
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/inmobiliaria-frontend:${{ github.event_name == 'workflow_dispatch' && github.event.inputs.branch || 'main' }}
