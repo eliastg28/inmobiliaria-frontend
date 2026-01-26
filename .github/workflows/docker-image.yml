@@ -26,7 +26,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      # 🔢 Generar versión semántica (Lógica idéntica al Backend)
+      # 🔢 Generar versión semántica limpia
       - name: 🔢 Generar versión
         id: version
         uses: PaulHatch/semantic-version@v4.0.3
@@ -34,7 +34,8 @@ jobs:
           major_pattern: "major:"
           minor_pattern: "feat:"
           patch_pattern: "fix:"
-          format: "${major}.${minor}.${patch}-v${increment}"
+          # 🚀 Formato profesional sin sufijos
+          format: "${major}.${minor}.${patch}"
           search_commit_body: true
           user_format_if_no_tag: true
           bump_each_commit: true
@@ -62,12 +63,12 @@ jobs:
           context: .
           file: Dockerfile
           push: true
-          # Usamos la versión generada para el tag específico
+          # Usamos la versión limpia para Docker Hub
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/inmobiliaria-frontend:${{ steps.version.outputs.version }}
             ${{ secrets.DOCKERHUB_USERNAME }}/inmobiliaria-frontend:latest
 
-      # 🏷️ Marcar la versión en Git para que el historial sea coherente
+      # 🏷️ Marcar la versión en Git
       - name: 🏷️ Push Git Tag
         run: |
           git config --global user.name "github-actions[bot]"
