@@ -63,6 +63,8 @@ jobs:
           context: .
           file: Dockerfile
           push: true
+          build-args: |
+            VITE_BACKEND_URL=${{ secrets.VITE_BACKEND_URL }}
           # Usamos la versión limpia para Docker Hub
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/inmobiliaria-frontend:${{ steps.version.outputs.version }}
